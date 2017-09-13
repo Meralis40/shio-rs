@@ -12,6 +12,7 @@ extern crate regex;
 extern crate tokio_core;
 extern crate tokio_io;
 extern crate unsafe_any;
+extern crate rayon;
 
 pub mod state;
 pub mod context;
@@ -24,6 +25,7 @@ pub mod request;
 pub mod errors;
 pub mod router;
 pub mod util;
+pub mod handlers;
 
 pub use hyper::{header, Method, StatusCode};
 
