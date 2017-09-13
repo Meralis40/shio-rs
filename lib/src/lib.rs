@@ -12,6 +12,7 @@ extern crate num_cpus;
 extern crate regex;
 extern crate tokio_core;
 extern crate unsafe_any;
+extern crate rayon;
 
 pub mod state;
 pub mod context;
@@ -26,6 +27,7 @@ pub mod router;
 pub mod util;
 pub mod data;
 pub mod http;
+pub mod handlers;
 
 pub use response::Response;
 pub use request::Request;
