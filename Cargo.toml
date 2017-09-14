@@ -12,4 +12,5 @@ members = [
   "examples/templates_askama",
   "examples/postgres",
   "examples/managed_state",
+  "examples/static_files",
 ]

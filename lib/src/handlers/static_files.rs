@@ -1,7 +1,8 @@
 //! Handler for sending static files.
 use hyper::{self, Method, StatusCode, header};
 use std::path::PathBuf;
-use rayon::{ThreadPool, Configuration};
+use rayon::ThreadPool;
+pub use rayon::Configuration;
 use futures::future;
 use std;
 
@@ -86,11 +87,13 @@ impl Handler for StaticFile {
             }
         };
 
+        println!("[static file] asked for {:?}", &real_path);
+
         let len = {
             let metadata = match std::fs::metadata(&real_path) {
                 Ok(x) => x,
-                Err(_) => {
-                    // TODO: maybe another response
+                Err(e) => {
+                    println!("error when getting metadata : {:?}", e);
                     return notfound();
                 }
             };
@@ -112,8 +115,8 @@ impl Handler for StaticFile {
 
         let file = match std::fs::File::open(real_path) {
             Ok(file) => file,
-            Err(_) => {
-                // TODO: better error
+            Err(e) => {
+                println!("error when opening file : {:?}", e);
                 return notfound();
             }
         };
