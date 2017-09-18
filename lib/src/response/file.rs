@@ -5,6 +5,7 @@ use futures::{Future, Sink};
 
 use std::fs;
 use std::io::{self, BufRead};
+use std::path::{Path, PathBuf, Component};
 
 use errors::Error;
 use response::{Responder, Response};
@@ -16,26 +17,59 @@ use http::{StatusCode, header};
 const CHUNK_SIZE: usize = 4096;
 
 pub struct File {
-    filename: String,
+    filename: PathBuf,
     cpupool : CpuPool,
     head    : bool,
 }
 
 impl File {
-    pub fn head(context: &Context, filename: String) -> Self {
+    pub fn head_base(context: &Context, filename: PathBuf) -> Self {
         File {
             filename, 
             head: true, 
-            cpupool: context.get::<CpuPool>().clone(),
+            cpupool: context.shared().get::<CpuPool>().clone(),
         }
     }
 
-    pub fn open(context: &Context, filename: String) -> Self {
+    pub fn open_base(context: &Context, filename: PathBuf) -> Self {
         File {
             filename,
             head: false,
-            cpupool: context.get::<CpuPool>().clone(),
+            cpupool: context.shared().get::<CpuPool>().clone(),
         }
+    }
+
+    pub fn head<P: Into<PathBuf>, Q: AsRef<Path>>(context: &Context, root_dir: P, filepath: Q) -> Self {
+        let mut root = root_dir.into();
+        let filepath = Self::normalize(filepath);
+        root.push(filepath);
+
+        Self::head_base(context, root)
+    }
+
+    pub fn open<P: Into<PathBuf>, Q: AsRef<Path>>(context: &Context, root_dir: P, filepath: Q) -> Self {
+        let mut root = root_dir.into();
+        let filepath = Self::normalize(filepath);
+        root.push(filepath);
+
+        Self::open_base(context, root)
+    }
+
+    pub fn normalize<P: AsRef<Path>>(filepath: P) -> PathBuf {
+        let mut buf = PathBuf::new();
+        let filepath = filepath.as_ref();
+
+        for comp in filepath.components() {
+            match comp {
+                Component::RootDir => { buf = PathBuf::new(); }
+                Component::CurDir => {}
+                Component::ParentDir => { buf.pop(); }
+                Component::Normal(txt) => { buf.push(txt); }
+                Component::Prefix(_) => { unimplemented!(); }
+            }
+        }
+
+        buf
     }
 }
 
@@ -111,7 +145,7 @@ impl Responder for File {
                 .status(StatusCode::Ok)
                 .header(header::ContentLength(length))
                 .body(body);
-            return Ok(response);
+            Ok(response)
         }).to_response()
     }
 }
