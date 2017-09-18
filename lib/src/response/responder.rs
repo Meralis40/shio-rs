@@ -2,6 +2,7 @@ use std::fmt;
 
 use hyper;
 use futures::{future, Future, IntoFuture};
+use futures_cpupool::CpuFuture;
 
 use response::Response;
 use http::StatusCode;
@@ -83,6 +84,28 @@ impl Responder for Response {
     #[inline]
     fn to_response(self) -> Self::Result {
         self
+    }
+}
+
+impl<E, R> Responder for CpuFuture<R, E>
+where
+    E: fmt::Debug + Send + 'static,
+    R: Responder + Send + 'static,
+    <<R as Responder>::Result as IntoFuture>::Error: fmt::Debug + Send + 'static,
+    <<R as Responder>::Result as IntoFuture>::Future: 'static,
+{
+    type Result = Box<Future<Item = Response, Error = hyper::Error>>;
+
+    #[inline]
+    fn to_response(self) -> Self::Result {
+        self.then(|result| match result {
+            Ok(responder) => responder
+                .to_response()
+                .into_future()
+                .or_else(default_catch)
+                .into_box(),
+            Err(error) => future::ok(default_catch(error)).into_box(),
+        }).into_box()
     }
 }
 

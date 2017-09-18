@@ -59,6 +59,7 @@ pub struct Error { inner: ErrorKind }
 enum ErrorKind {
     Listen(ListenError),
     Hyper(hyper::Error),
+    Io(io::Error),
 }
 
 impl From<ListenError> for Error {
@@ -73,11 +74,18 @@ impl From<hyper::Error> for Error {
     }
 }
 
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Self {
+        Self { inner: ErrorKind::Io(err) }
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.inner {
             ErrorKind::Hyper(ref err) => err.fmt(f),
             ErrorKind::Listen(ref err) => err.fmt(f),
+            ErrorKind::Io(ref err) => err.fmt(f),
         }
     }
 }
@@ -87,6 +95,7 @@ impl StdError for Error {
         match self.inner {
             ErrorKind::Hyper(ref err) => err.description(),
             ErrorKind::Listen(ref err) => err.description(),
+            ErrorKind::Io(ref err) => err.description(),
         }
     }
 
@@ -94,6 +103,7 @@ impl StdError for Error {
         match self.inner {
             ErrorKind::Hyper(ref err) => err.cause(),
             ErrorKind::Listen(ref err) => err.cause(),
+            ErrorKind::Io(ref err) => err.cause(),
         }
     }
 }

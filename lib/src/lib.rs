@@ -12,7 +12,7 @@ extern crate num_cpus;
 extern crate regex;
 extern crate tokio_core;
 extern crate unsafe_any;
-extern crate rayon;
+extern crate futures_cpupool;
 
 pub mod state;
 pub mod context;
@@ -27,7 +27,6 @@ pub mod router;
 pub mod util;
 pub mod data;
 pub mod http;
-pub mod handlers;
 
 pub use response::Response;
 pub use request::Request;
@@ -44,6 +43,7 @@ pub mod prelude {
     pub use router::Parameters;
     pub use ext::{BoxFuture, FutureExt};
     pub use http::{Method, StatusCode};
+    pub use response::File;
 
     pub use futures::{Future, Stream, IntoFuture};
 }

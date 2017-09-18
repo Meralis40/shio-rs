@@ -1,7 +1,6 @@
 extern crate shio;
 
 use shio::prelude::*;
-use shio::handlers::{StaticFile, Configuration};
 
 fn hello_world(_: Context) -> Response {
     Response::with("Hello World!\n")
@@ -12,11 +11,23 @@ fn hello(ctx: Context) -> Response {
 }
 
 fn main() {
+    // This needs helps for normalize static paths for avoid traversal attacks
     Shio::default()
-        .route((Method::Get, "/", hello_world))
-        .route((Method::Get, "/{name}", hello))
-        .route((Method::Get, "/static/{filepath:.*}", 
-            StaticFile::new("examples/static_files/static/", Configuration::new().num_threads(2))
+        .route((Method::GET, "/", hello_world))
+        .route((Method::GET, "/{name}", hello))
+        .route((Method::GET, "/static/{filepath:.*}", 
+            |ctx: Context| {
+                let filebase : &str = &ctx.get::<Parameters>()["filepath"];
+                let filename = "examples/static_files/static/".to_owned() + filebase;
+                Response::with(File::open(&ctx, filename))
+            }
+        ))
+        .route((Method::HEAD, "/static/{filepath:.*}",
+            |ctx: Context| {
+                let filebase : &str = &ctx.get::<Parameters>()["filepath"];
+                let filename = "examples/static_files/static/".to_owned() + filebase;
+                Response::with(File::head(&ctx, filename))
+            }
         ))
         .run(":7878")
         .unwrap();

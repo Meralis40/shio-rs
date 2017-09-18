@@ -3,6 +3,8 @@ use std::any::{Any, TypeId};
 use std::hash::{BuildHasherDefault, Hasher};
 use std::ptr;
 
+use futures_cpupool;
+
 use unsafe_any::{UnsafeAny, UnsafeAnyExt};
 
 #[derive(Default)]
@@ -55,6 +57,10 @@ where
 pub trait Key: Any {
     /// The value type associated with this key type.
     type Value: Any;
+}
+
+impl Key for futures_cpupool::CpuPool {
+    type Value = Self;
 }
 
 impl TypeMap {

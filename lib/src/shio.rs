@@ -11,6 +11,7 @@ use tokio_core::reactor::Core;
 use net2::TcpBuilder;
 use util::typemap::{Key, TypeMap};
 use unsafe_any::UnsafeAny;
+use futures_cpupool;
 
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
@@ -28,6 +29,8 @@ where
     handler: Arc<H>,
     threads: usize,
     shared_state: Arc<TypeMap<UnsafeAny + Send + Sync>>,
+    /// The cpupool is setup during 
+    cpupool: Option<futures_cpupool::CpuPool>,
 }
 
 impl<H: Handler> Shio<H>
@@ -39,6 +42,7 @@ where
             handler: Arc::new(handler),
             threads: num_cpus::get(),
             shared_state: Arc::new(TypeMap::custom()),
+            cpupool: None,
         }
     }
 
@@ -56,10 +60,24 @@ where
         self.threads = threads;
     }
 
+    /// Setup CpuPool.
+    ///
+    /// This permit to configure the CpuPool instead of default builder.
+    pub fn set_cpupool_config(&mut self, builder: &mut futures_cpupool::Builder) -> &mut Self {
+        self.cpupool = Some(builder.create());
+        self
+    }
+
     #[cfg_attr(feature = "cargo-clippy", allow(use_debug, never_loop))]
-    pub fn run<A: ToSocketAddrsExt>(&self, addr: A) -> Result<(), ListenError> {
+    pub fn run<A: ToSocketAddrsExt>(&mut self, addr: A) -> Result<(), ListenError> {
         let addrs = addr.to_socket_addrs_ext()?.collect::<Vec<_>>();
         let mut children = Vec::new();
+        let cpupool = self.cpupool.as_ref().cloned()
+            .unwrap_or_else(futures_cpupool::CpuPool::new_num_cpus);
+        {
+            Arc::get_mut(&mut self.shared_state)
+                .map(|shared_state| shared_state.put::<futures_cpupool::CpuPool>(cpupool));
+        }
 
         let spawn = || -> JoinHandle<Result<(), ListenError>> {
             let addrs = addrs.clone();

@@ -1,8 +1,10 @@
 mod builder;
 mod responder;
+mod file;
 
 pub use self::builder::Builder;
 pub use self::responder::Responder;
+pub use self::file::File;
 
 use std::fmt;
 
