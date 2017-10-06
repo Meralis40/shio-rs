@@ -12,7 +12,7 @@ use net2::TcpBuilder;
 use util::typemap::{Key, TypeMap};
 use unsafe_any::UnsafeAny;
 
-#[cfg(unix)]
+#[cfg(all(not(feature="wsl"),unix))]
 use net2::unix::UnixTcpBuilderExt;
 
 use handler::Handler;
@@ -82,8 +82,8 @@ where
                     // Set SO_REUSEADDR on the socket
                     builder.reuse_address(true)?;
 
-                    // Set SO_REUSEPORT on the socket (in unix)
-                    #[cfg(unix)]
+                    // Set SO_REUSEPORT on the socket (in unix & not WSL)
+                    #[cfg(all(not(feature="wsl"),unix))]
                     builder.reuse_port(true)?;
 
                     builder.bind(&addr)?;

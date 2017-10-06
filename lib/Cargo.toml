@@ -25,3 +25,4 @@ http = "0.1"
 [features]
 default = []
 nightly = []
+wsl = []
